@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Iscrizione</title>
+</head>
+<body>
+<h1>Inserisci il tuo Username</h1>
+<label for="username">Username</label>
+<input id="username" type="text" placeholder="Username...">
+<button onclick="entra()">Entra</button>
+
+<script>
+    function entra()
+    {
+        username = document.getElementById('username').value
+        location.href = '/entra?username=' + username
+    }
+</script>
+</body>
+</html>

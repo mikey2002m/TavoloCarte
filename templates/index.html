@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tavolo</title>
+    <script src="https://pixijs.download/release/pixi.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <style>
+        table {
+          font-family: arial, sans-serif;
+          border-collapse: collapse;
+          width: 100%;
+        }
+
+        td, th {
+          border: 1px solid #dddddd;
+          text-align: left;
+          padding: 8px;
+        }
+
+        tr:nth-child(even) {
+          background-color: #dddddd;
+        }
+
+        .button {
+          background-color: #4CAF50;
+          border: none;
+          color: white;
+          padding: 15px 32px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 16px;
+          margin: 4px 2px;
+          cursor: pointer;
+        }
+
+        .button_red {
+          background-color: #a41200;
+          border: none;
+          color: white;
+          padding: 15px 32px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 16px;
+          margin: 4px 2px;
+          cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <label for="username">Username</label>
+    <input id="username" type="text" placeholder="Username...">
+    <button id="entra_btn" class="button" onclick="entra()">Entra</button>
+</div>
+
+<br>
+
+
+<script>
+    const SIZE_X = 84
+    const SIZE_Y = 144
+    const HEIGHT = 400
+    const WIDTH = 1500
+    const START_X = 20
+    const START_Y = 50
+    const DEBUG = false
+    let app = new PIXI.Application({ width: WIDTH, height: HEIGHT });
+    document.body.appendChild(app.view);
+    username = ''
+    n_cambiamenti = -1
+
+
+
+    carte = []
+    {% for carta in mazzo %}
+        tmp = PIXI.Sprite.from('{{url_for('static', filename='carte/' + carta.file)}}')
+        tmp.interactive = true
+        tmp.visible = false
+        tmp.on('pointerdown', () => cardclick({{ carta.id }}))
+        app.stage.addChild(tmp);
+        carte.push(tmp)
+    {% endfor %}
+    //let sprite = PIXI.Sprite.from('{ {url_for('static', filename='carte/basto01.png')}}');
+
+
+    const style = new PIXI.TextStyle({
+        fontSize: 15,
+        fill: ['#ffffff']
+    });
+
+    const basicText = new PIXI.Text('Giocatori:', style);
+    basicText.x = 5;
+    basicText.y = 5;
+
+    console.log(basicText.width + ' ' + basicText.height)
+
+    // app.stage.addChild(basicText);
+
+
+    //TAVOLO
+    giocatori = []
+    c_tavolo = []
+    mazziere = ''
+    selezione = []
+    mazzo = -1
+
+
+    tue_carte = []
+
+
+    var lbl_tavolo = []
+
+    //MAZZIERE
+    /*
+    maz_mischia = new PIXI.Text('Mischia', style);
+    maz_mischia.interactive = true
+    app.stage.addChild(maz_mischia);
+    maz_mischia.x = WIDTH-maz_mischia.width
+    maz_mischia.y = 5
+
+    maz_tavola = new PIXI.Text('Carta a Tavola', style);
+    maz_tavola.interactive = true
+    app.stage.addChild(maz_tavola);
+    maz_tavola.x = WIDTH-maz_tavola.width
+    maz_tavola.y = 5+maz_mischia.height+10
+
+    maz_ritira = new PIXI.Text('Ritira Carte', style);
+    maz_ritira.interactive = true
+    app.stage.addChild(maz_ritira);
+    maz_ritira.x = WIDTH-maz_ritira.width
+    maz_ritira.y = 5+maz_mischia.height+10+maz_tavola.height+10
+
+    maz_prossimo = new PIXI.Text('Prossimo Mazziere', style);
+    maz_prossimo.interactive = true
+    app.stage.addChild(maz_prossimo);
+    maz_prossimo.x = WIDTH-maz_prossimo.width
+    maz_prossimo.y = 5+maz_mischia.height+10+maz_tavola.height+10+maz_ritira.height+10
+
+
+
+
+
+    //COMANDI
+
+    com_scarta = new PIXI.Text('Scarta', style);
+    com_scarta.interactive = true
+    app.stage.addChild(com_scarta);
+    com_scarta.x = 5
+    com_scarta.y = HEIGHT-com_scarta.height-5
+
+    com_tavola = new PIXI.Text('Tavola', style);
+    com_tavola.interactive = true
+    app.stage.addChild(com_tavola);
+    com_tavola.x = 5
+    com_tavola.y = HEIGHT-com_scarta.height-5-com_tavola.height-10
+
+
+     */
+
+
+
+
+
+
+    last = Date.now();
+    last1 = Date.now();
+    app.ticker.add((delta) => {
+        carte.forEach((c) => {
+            c.visible = false
+        })
+
+        a = true
+        if (lbl_tavolo.length === c_tavolo.length)
+        {
+            for (let j = 0; j < lbl_tavolo.length; j++) {
+                if (lbl_tavolo[j].nome !== c_tavolo[j].giocatore || lbl_tavolo[j].carta !== c_tavolo[j].carta)
+                {
+                    a = false
+                    break
+                }
+            }
+        }
+        else
+            a = false
+
+        if (!a)
+        {
+            lbl_tavolo.forEach((lbl) => {
+                app.stage.removeChild(lbl.lbl_nome)
+                app.stage.removeChild(lbl.lbl_rimuovi)
+            })
+            lbl_tavolo = []
+            c_tavolo.forEach((c_tav) => {
+                const text = new PIXI.Text(c_tav.giocatore, style);
+                app.stage.addChild(text);
+                text.visible = false
+
+                const text2 = new PIXI.Text('RIMUOVI', style);
+                app.stage.addChild(text2);
+                text2.visible = false
+                text2.interactive = true
+                text2.on('pointerdown', () => rimuvi_carta(c_tav.carta))
+
+                lbl_tavolo.push({
+                    nome: c_tav.giocatore,
+                    lbl_nome: text,
+                    lbl_rimuovi: text2,
+                    carta: c_tav.carta
+                })
+
+            })
+        }
+
+        for (let j = 0; j < c_tavolo.length; j++) {
+            let c = carte[c_tavolo[j].carta]
+            c.visible = true
+            c.x = START_X + (j * SIZE_X) + (j*5)
+            c.y = START_Y
+
+            let lbl_nome = lbl_tavolo[j].lbl_nome
+            lbl_nome.x = START_X + (j * SIZE_X) + (j*5) + Math.round(SIZE_X / 2) - Math.round(lbl_nome.width / 2)
+            lbl_nome.y = START_Y - lbl_nome.height - 5
+            lbl_nome.visible = true
+
+            let lbl_rimuovi = lbl_tavolo[j].lbl_rimuovi
+            lbl_rimuovi.x = START_X + (j * SIZE_X) + (j*5) + (SIZE_X / 2)- Math.round(lbl_rimuovi.width / 2)
+            lbl_rimuovi.y = START_Y + 5 + SIZE_Y
+            lbl_rimuovi.visible = true
+
+        }
+        /*
+        c_tavolo.forEach((carta) => {
+            c = carte[carta.carta]
+            c.visible = true
+            c.x = START_X + (i * SIZE_X) + (i*5)
+            c.y = START_Y
+
+
+
+
+
+            i++
+        })
+
+
+         */
+
+        i = 0
+        tue_carte.forEach((carta) => {
+            c = carte[carta]
+            c.visible = true
+            //c.x = WIDTH - SIZE_X - 10 - (i * SIZE_X) - (i * 10)
+            c.x = 10 + (SIZE_X * i) + (i*10)
+            sel = 0
+            if (selezione[i])
+                sel = 20
+            c.y = HEIGHT - SIZE_Y - sel
+            i++
+        })
+
+
+
+
+
+
+
+        now = Date.now()
+        /*
+        if (now - last >= 1000)
+        {
+            aggiornamento()
+            last = now
+        }
+
+
+         */
+        if (now - last1 >= 100)
+        {
+            cambiamenti()
+            last1 = now
+        }
+
+    });
+
+
+    function entra()
+    {
+        nik = document.getElementById('username').value
+        username = nik
+        document.getElementById('entra_btn').style.display = 'none'
+        if (!esiste(username))
+        {
+            $.ajax({
+                url: '/iscrizione',
+                method : 'GET',
+                data: {
+                    username: username
+                },
+                beforeSend: function() {
+
+                },
+                success: function(response) {
+                    console.log(response)
+                    aggiornamento()
+                }
+            });
+        }
+
+    }
+
+
+    function esiste(nome)
+    {
+        for (let i = 0; i < giocatori.length; i++) {
+            g = giocatori[i]
+            if (g.nome === nome)
+            {
+                return true;
+            }
+        }
+        return false
+    }
+
+    function updateTable()
+    {
+        tab_giocatori = document.getElementById('tab_giocatori')
+        res = `<tr>
+                    <th>Giocatori</th>
+                    <th></th>
+                </tr>`
+        giocatori.forEach((g) => {
+            res += `<tr>
+                        <td>${g.nome} - ${g.n_carte}</td>
+                        <td><button id="carta_btn" class="button" onclick="invia_carta('${g.nome}')">Carta</button></td>
+                    </tr>`
+        })
+        tab_giocatori.innerHTML = res
+    }
+
+    function updateMazzo()
+    {
+        txt_mazzo = document.getElementById('carte_mazzo')
+        txt_mazzo.innerHTML = `Mazzo: ${mazzo} carte`
+    }
+
+    function cardclick(c_id)
+    {
+        for (let i = 0; i < tue_carte.length; i++) {
+            if (tue_carte[i] === c_id)
+                selezione[i] = !selezione[i]
+        }
+    }
+
+
+
+    function mostra_tavolo()
+    {
+        for (let i = 0; i < selezione.length; i++) {
+            if (selezione[i])
+            {
+                $.ajax({
+                url: '/scarta_tavolo',
+                method : 'GET',
+                data: {
+                    username: username,
+                    c_id: tue_carte[i]
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    console.log(response)
+                    aggiornamento()
+                }
+                });
+            }
+        }
+    }
+
+    function scarta_carte()
+    {
+        for (let i = 0; i < selezione.length; i++) {
+            if (selezione[i])
+            {
+                $.ajax({
+                url: '/scarta',
+                method : 'GET',
+                data: {
+                    username: username,
+                    c_id: tue_carte[i]
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    console.log(response)
+                    aggiornamento()
+                }
+                });
+            }
+        }
+    }
+
+    function invia_carta(nome)
+    {
+        $.ajax({
+                url: '/mazziere_carta_giocatore',
+                method : 'GET',
+                data: {
+                    username: nome
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    console.log(response)
+                    aggiornamento()
+                }
+                });
+    }
+
+    function mischia()
+    {
+        $.ajax({
+                url: '/mischia',
+                method : 'GET',
+                data: {
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    console.log(response)
+                    aggiornamento()
+                }
+                });
+    }
+
+
+    function mazziere_carta_tavola()
+    {
+        $.ajax({
+                url: '/mazziere_carta_tavola',
+                method : 'GET',
+                data: {
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    console.log(response)
+                    aggiornamento()
+                }
+                });
+    }
+
+
+    function raccogli_carte()
+    {
+        $.ajax({
+                url: '/ritira_carte',
+                method : 'GET',
+                data: {
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    console.log(response)
+                    aggiornamento()
+                }
+                });
+    }
+
+    function rimuvi_carta(c_id)
+    {
+        $.ajax({
+                url: '/rimuovi_tavolo',
+                method : 'GET',
+                data: {
+                    c_id: c_id
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    console.log(response)
+                    aggiornamento()
+                }
+                });
+    }
+
+    function aggiornamento()
+    {
+        $.ajax({
+                url: '/aggiornamento',
+                method : 'GET',
+                data: {
+                    username: username
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    if (DEBUG)
+                        console.log(response)
+                    if (giocatori !== response.giocatori)
+                    {
+                        giocatori = response.giocatori
+                        updateTable()
+                    }
+                    c_tavolo = response.tavolo
+                    if (response.mazziere)
+                    {
+                        mazziere = response.mazziere
+                    }
+                    if (response.carte)
+                    {
+                        if (response.carte.length === tue_carte.length)
+                        {
+                            a = true
+                            for (let j = 0; j < tue_carte; j++) {
+                                if (response.carte[j] !== tue_carte[j])
+                                {
+                                    a = false
+                                    break
+                                }
+                            }
+                            if (!a)
+                            {
+                                tue_carte = response.carte
+                                selezione = []
+                                for (let j = 0; j < tue_carte.length; j++) {
+                                    selezione.push(false)
+                                }
+                            }
+                        }
+                        else {
+                            tue_carte = response.carte
+                            selezione = []
+                            for (let j = 0; j < tue_carte.length; j++) {
+                                selezione.push(false)
+                            }
+                        }
+
+                    }
+                    if (mazzo !== response.mazzo)
+                    {
+                        mazzo = response.mazzo
+                        updateMazzo()
+                    }
+                }
+            });
+    }
+
+    function cambiamenti()
+    {
+        $.ajax({
+                url: '/cambiamenti',
+                method : 'GET',
+                data: {
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    if (DEBUG)
+                        console.log(response)
+                    if (response.cambiamenti !== n_cambiamenti)
+                    {
+                        n_cambiamenti = response.cambiamenti
+                        aggiornamento()
+                    }
+                }
+            });
+    }
+</script>
+
+<div>
+    <button id="mostra_tavolo" class="button" onclick="mostra_tavolo()">Mostra al tavolo</button>
+    <br>
+    <button id="scarta_carte" class="button_red" onclick="scarta_carte()">Scarta</button>
+</div>
+<div>
+    <table id="tab_giocatori">
+        <tr>
+            <th>Giocatori</th>
+            <th></th>
+        </tr>
+    </table>
+</div>
+<div>
+    <h1>Mazziere</h1>
+    <h2 id="carte_mazzo">Mazzo: </h2>
+    <br>
+    <button class="button" onclick="mischia()">Mischia</button>
+    <button class="button" onclick="mazziere_carta_tavola()">Carta a Tavola</button>
+    <br>
+    <button class="button" onclick="raccogli_carte()">Raccogli Carte</button>
+</div>
+</body>
+</html>

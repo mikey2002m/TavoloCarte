@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fondi</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <style>
+        table {
+          font-family: arial, sans-serif;
+          border-collapse: collapse;
+          width: 100%;
+        }
+
+        td, th {
+          border: 1px solid #dddddd;
+          text-align: left;
+          padding: 8px;
+        }
+
+        tr:nth-child(even) {
+          background-color: #dddddd;
+        }
+
+        .button {
+          background-color: #4CAF50;
+          border: none;
+          color: white;
+          padding: 15px 32px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 16px;
+          margin: 4px 2px;
+          cursor: pointer;
+        }
+
+        .button_red {
+          background-color: #a41200;
+          border: none;
+          color: white;
+          padding: 15px 32px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 16px;
+          margin: 4px 2px;
+          cursor: pointer;
+        }
+
+        .box {
+            margin: 24px auto auto;
+            border: 3px solid #003366;
+            border-radius: 5px;
+            padding: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <label for="username">Username</label>
+    <input id="username" type="text" placeholder="Username...">
+    <button id="entra_btn" class="button" onclick="entra()">Entra</button>
+</div>
+<div class="box">
+    <h1>Piatto</h1>
+    <h1 id="lbl_piatto">0.00€</h1>
+    <span>Dividi:</span>
+    <select id="player_sel_d1" class="button selector"></select>
+    <select id="player_sel_d2" class="button selector"></select>
+    <select id="player_sel_d3" class="button selector"></select>
+    <br>
+    <button class="button" onclick="dividiPiatto()">Dividi</button>
+</div>
+<div class="box">
+    <h1>Fondi</h1>
+    <h2 id="miei_fondi">0.00€</h2>
+    <h1>Inserisci</h1>
+    <span>Inserisci</span>
+    <input type="number" min="0.00" step="0.1" value="0.30" class="button" id="valore_inserisci">
+    <button class="button" onclick="inserisciPiatto()">Inserisci</button>
+    <h1>Invia a:</h1>
+    <span>Invia a:</span>
+    <select id="player_sel_invia" class="button selector"></select>
+    <input type="number" min="0.00" step="0.1" value="0.30" class="button" id="valore_invia">
+    <button class="button" onclick="inviaFondi()">Invia</button>
+</div>
+
+<div class="box">
+    <table id="tab_giocatori">
+        <tr>
+            <th>Giocatori</th>
+            <th>Fondi</th>
+        </tr>
+    </table>
+</div>
+
+<script>
+    const DEBUG = true
+    var piatto = 0
+    var lista_fondi = []
+    var username = ''
+
+    function fondi()
+    {
+        $.ajax({
+                url: '/fondi_update',
+                method : 'GET',
+                data: {
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    if (DEBUG)
+                        console.log(response)
+                    if (piatto !== response.piatto)
+                    {
+                        piatto = response.piatto
+                        updateUI()
+                    }
+                    a = true
+                    if (lista_fondi.length === response.lista_fondi.length) {
+                        for (let i = 0; i < lista_fondi.length; i++) {
+                            if (lista_fondi[i].nome !== response.lista_fondi[i].nome || lista_fondi[i].fondi !== response.lista_fondi[i].fondi)
+                                a = false
+                        }
+                    }
+                    else
+                        a = false
+                    if (!a)
+                    {
+                        lista_fondi = response.lista_fondi
+                        updateUI()
+                    }
+                    setTimeout(fondi, 1000)
+                }
+            });
+    }
+
+    function entra()
+    {
+        nome = document.getElementById('username').value
+        a = false
+        for (let i = 0; i < lista_fondi.length; i++) {
+            g = lista_fondi[i]
+            if (g.nome === nome)
+                a = true
+        }
+
+        if (!a)
+        {
+            alert('Registra prima il tuo nome sulla pagina principale!')
+        }
+        else
+        {
+            username = nome
+            document.getElementById('entra_btn').style.display = 'none'
+            updateUI()
+        }
+    }
+
+    function updateUI()
+    {
+        players_sel = document.querySelectorAll('.selector')
+
+        res = ''
+        lista_fondi.forEach((g) => {
+            res += `<option value="${g.nome}">${g.nome}</option>`
+        })
+
+        players_sel.forEach((el) => {
+            el.innerHTML = res
+        })
+
+        lbl_piatto = document.getElementById('lbl_piatto')
+        lbl_piatto.innerHTML = (piatto/100).toFixed(2) + '€'
+
+
+        tab_giocatori = document.getElementById('tab_giocatori')
+        res = `<tr>
+            <th>Giocatori</th>
+            <th>Fondi</th>
+        </tr>`
+
+        lista_fondi.forEach((g) =>
+        {
+            res += `<tr>
+                <td>${g.nome}</td>
+                <td>${(g.fondi/100).toFixed(2)}€</td>
+                </tr>`
+        })
+        tab_giocatori.innerHTML = res
+
+        my_founds = document.getElementById('miei_fondi')
+        my_founds.innerHTML = (get_miei_fondi()/100).toFixed(2) + '€'
+    }
+
+    function get_miei_fondi()
+    {
+        for (let i = 0; i < lista_fondi.length; i++) {
+            if (lista_fondi[i].nome === username)
+            {
+                return lista_fondi[i].fondi
+            }
+        }
+    }
+
+    function dividiPiatto()
+    {
+        g1 = document.getElementById('player_sel_d1').value
+        g2 = document.getElementById('player_sel_d2').value
+        g3 = document.getElementById('player_sel_d3').value
+        $.ajax({
+                url: '/dividi_piatto',
+                method : 'GET',
+                data: {
+                    a: g1,
+                    b: g2,
+                    c: g3
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    if (DEBUG)
+                        console.log(response)
+                    fondi()
+                }
+            });
+    }
+
+    function inserisciPiatto()
+    {
+        if (username === '')
+            return
+        valore = Math.round(parseFloat(document.getElementById('valore_inserisci').value)*100)
+
+        $.ajax({
+                url: '/invia_piatto',
+                method : 'GET',
+                data: {
+                    giocatore: username,
+                    importo: valore
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    if (DEBUG)
+                        console.log(response)
+                    fondi()
+                }
+            });
+    }
+
+    function inviaFondi()
+    {
+        if (username === '')
+            return
+        valore = Math.round(parseFloat(document.getElementById('valore_invia').value)*100)
+        ricevente = document.getElementById('player_sel_invia').value
+        $.ajax({
+                url: '/invia_giocatore',
+                method : 'GET',
+                data: {
+                    giocatore: username,
+                    ricevente: ricevente,
+                    importo: valore
+                },
+                beforeSend: function() {
+                },
+                success: function(response) {
+                    if (DEBUG)
+                        console.log(response)
+                    fondi()
+                }
+            });
+    }
+    fondi()
+
+</script>
+</body>
+</html>
